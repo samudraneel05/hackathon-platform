@@ -1,10 +1,44 @@
+"use client"
+
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Award, Clock, BarChart } from "lucide-react"
 
 export default function TeacherDashboard() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  
+  useEffect(() => {
+    // Redirect if not teacher or admin
+    if (status === "authenticated" && 
+        session?.user?.role !== "TEACHER" && 
+        session?.user?.role !== "ADMIN") {
+      router.push("/auth/unauthorized")
+    } else if (status === "unauthenticated") {
+      router.push("/auth/login")
+    }
+  }, [session, status, router])
+
+  // Show loading or return null while checking authentication
+  if (status === "loading" || 
+      (status === "authenticated" && 
+       session?.user?.role !== "TEACHER" && 
+       session?.user?.role !== "ADMIN")) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold">Loading...</h2>
+          <p className="text-muted-foreground">Verifying your credentials</p>
+        </div>
+      </div>
+    )
+  }
+  
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -135,4 +169,3 @@ export default function TeacherDashboard() {
     </div>
   )
 }
-
