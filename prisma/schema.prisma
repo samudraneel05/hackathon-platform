@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime?
+  accounts      Account[]
+  sessions      Session[]
+  profile       Profile?
+  teams         Team[]      @relation("TeamMembers")
+  createdTeams  Team[]      @relation("TeamCreator")
+  projects      Project[]   @relation("ProjectContributors")
+  createdProjects Project[] @relation("ProjectCreator")
+  feedbacks     Feedback[]  @relation("FeedbackGiver")
+  receivedFeedbacks Feedback[] @relation("FeedbackReceiver")
+  hackathons    Hackathon[] @relation("HackathonParticipants")
+  createdHackathons Hackathon[] @relation("HackathonCreator")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  bio         String?
+  school      String?
+  grade       String?
+  skills      String?
+  interests   String?
+  githubUrl   String?
+  linkedinUrl String?
+  websiteUrl  String?
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Hackathon {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  startDate   DateTime
+  endDate     DateTime
+  registrationDeadline DateTime
+  maxTeamSize Int      @default(4)
+  isActive    Boolean  @default(true)
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  creatorId   String
+
+  creator     User     @relation("HackathonCreator", fields: [creatorId], references: [id])
+  participants User[]  @relation("HackathonParticipants")
+  teams       Team[]
+  projects    Project[]
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  hackathonId String
+  creatorId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id])
+  creator     User      @relation("TeamCreator", fields: [creatorId], references: [id])
+  members     User[]    @relation("TeamMembers")
+  project     Project?
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  repoUrl     String?
+  demoUrl     String?
+  imageUrl    String?
+  submissionDate DateTime
+  hackathonId String
+  teamId      String?  @unique
+  creatorId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id])
+  team        Team?     @relation(fields: [teamId], references: [id])
+  creator     User      @relation("ProjectCreator", fields: [creatorId], references: [id])
+  contributors User[]   @relation("ProjectContributors")
+  feedbacks   Feedback[]
+}
+
+model Feedback {
+  id          String   @id @default(cuid())
+  content     String
+  rating      Int      @default(0)
+  projectId   String
+  giverId     String
+  receiverId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id])
+  giver       User     @relation("FeedbackGiver", fields: [giverId], references: [id])
+  receiver    User     @relation("FeedbackReceiver", fields: [receiverId], references: [id])
+}
