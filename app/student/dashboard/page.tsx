@@ -1,11 +1,47 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Bell } from "lucide-react"
 
 export default function StudentDashboard() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  
+  useEffect(() => {
+    // Redirect if not student, teacher, or admin
+    if (status === "authenticated" && 
+        session?.user?.role !== "STUDENT" && 
+        session?.user?.role !== "TEACHER" && 
+        session?.user?.role !== "ADMIN") {
+      router.push("/auth/unauthorized")
+    } else if (status === "unauthenticated") {
+      router.push("/auth/login")
+    }
+  }, [session, status, router])
+
+  // Show loading or return null while checking authentication
+  if (status === "loading" || 
+      (status === "authenticated" && 
+       session?.user?.role !== "STUDENT" && 
+       session?.user?.role !== "TEACHER" && 
+       session?.user?.role !== "ADMIN")) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold">Loading...</h2>
+          <p className="text-muted-foreground">Verifying your credentials</p>
+        </div>
+      </div>
+    )
+  }
+  
   // Sample hackathons data
   const hackathons = [
     {
@@ -152,4 +188,3 @@ export default function StudentDashboard() {
     </div>
   )
 }
-
